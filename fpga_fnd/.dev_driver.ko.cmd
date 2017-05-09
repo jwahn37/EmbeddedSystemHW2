@@ -1,1 +1,0 @@
-cmd_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/dev_driver.ko := arm-none-linux-gnueabi-ld -EL -r  -T /work/achroimx_kernel/scripts/module-common.lds --build-id  -o /home/embe-19/Downloads/EmbeHW2/fpga_fnd/dev_driver.ko /home/embe-19/Downloads/EmbeHW2/fpga_fnd/dev_driver.o /home/embe-19/Downloads/EmbeHW2/fpga_fnd/dev_driver.mod.o
