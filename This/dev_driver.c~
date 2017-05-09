@@ -100,91 +100,6 @@ const unsigned char fpga_number[10][10] = {
     {0x3e,0x7f,0x63,0x63,0x7f,0x3f,0x03,0x03,0x03,0x03} // 9
 };
 
-//set each device variable
-void set_initVals()
-{
-    int i;
-
-    for(i=0;i<4;i++)
-    {
-        fnd_write[i]=0;
-    }
-    fnd_write[user_d.fnd_loc-1]=user_d.fnd_val;
-    led_val=1<<(8-user_d.fnd_val);
-    dot_val=user_d.fnd_val;
-
-}
-
-//reset each device variable according to timer
-void reset_vals()
-{
-    int i;
-    static int iter=0;
-    static char lcd_upper_flag=RIGHT;
-    static char lcd_lower_flag=RIGHT;
-    
-    iter++;
-    for(i=0;i<4;i++)
-    {
-        if(fnd_write[i]!=0)
-        {
-           if(iter==8)
-           {
-                fnd_write[(i+1)%4]=fnd_write[i]%8+1;
-                fnd_write[i]=0;
-                i++;
-                iter=0;
-                break;
-           }
-           else
-           {
-               fnd_write[i]=fnd_write[i]%8+1;
-               break;
-           }
-        }
-    }
-    led_val=1<<(8-fnd_write[i]);
-    dot_val=fnd_write[i];
-
-
-    //lcd string
-    if(lcd_str[0]==' '&& lcd_str[15]!=' ')
-        lcd_upper_flag=LEFT;
-    else if(lcd_str[0]!=' '&& lcd_str[15]==' ')
-        lcd_upper_flag=RIGHT;
-    for(i=0;i<16;i++)
-    {
-        if(lcd_upper_flag==RIGHT)//move to RIGHT
-        {
-            if(i==15)   lcd_str[0]=' '; 
-            else        lcd_str[15-i]=lcd_str[14-i];
-        }
-        else if(lcd_upper_flag==LEFT)//move to LEFT
-        {
-            if(i==15)   lcd_str[15]=' '; 
-            else        lcd_str[i]=lcd_str[i+1];
-        }
-    }
-    if(lcd_str[16]==' '&& lcd_str[31]!=' ')
-        lcd_lower_flag=LEFT;
-    else if(lcd_str[16]!=' '&& lcd_str[31]==' ')
-        lcd_lower_flag=RIGHT;
-
-    for(i=0;i<16;i++)
-    {
-        if(lcd_lower_flag==RIGHT)//move to RIGHT
-        {
-            if(i==31)   lcd_str[16]=' '; 
-            else        lcd_str[31-i]=lcd_str[30-i];
-        }
-        else if(lcd_lower_flag==LEFT)//move to LEFT
-        {
-            if(i+16==31)   lcd_str[31]=' '; 
-            else        lcd_str[16+i]=lcd_str[16+i+1];
-        }
-    }
-
-}
 
 //device open
 int device_open(struct inode *minode, struct file *mfile)
@@ -259,8 +174,11 @@ int timer_init(void){
 void timer_handler(unsigned long arg)
 {
     int i;
-  //  static char lcd_upper_flag=RIGHT;
-  //  static char lcd_lower_flag=RIGHT;
+  
+if(arg<user_d.number-1)
+{  //      add_timer(driver_timer);
+  
+    
     printk("timer tick : %ld  %d\n", arg,led_val);
     driver_timer -> data++;
     driver_timer->expires = get_jiffies_64() + (HZ*user_d.timer_span/10);
@@ -274,47 +192,11 @@ void timer_handler(unsigned long arg)
     reset_vals();
 
     device_text_lcd_write(lcd_str);
- /* 
-    //lcd string
-    if(lcd_str[0]==' '&& lcd_str[15]!=' ')
-        lcd_upper_flag=LEFT;
-    else if(lcd_str[0]!=' '&& lcd_str[15]==' ')
-        lcd_upper_flag=RIGHT;
-    for(i=0;i<16;i++)
-    {
-        if(lcd_upper_flag==RIGHT)//move to RIGHT
-        {
-            if(i==15)   lcd_str[0]=' '; 
-            else        lcd_str[15-i]=lcd_str[14-i];
-        }
-        else if(lcd_upper_flag==LEFT)//move to LEFT
-        {
-            if(i==15)   lcd_str[15]=' '; 
-            else        lcd_str[i]=lcd_str[i+1];
-        }
-    }
-    if(lcd_str[16]==' '&& lcd_str[31]!=' ')
-        lcd_lower_flag=LEFT;
-    else if(lcd_str[16]!=' '&& lcd_str[31]==' ')
-        lcd_lower_flag=RIGHT;
+ 
 
-    for(i=0;i<16;i++)
-    {
-        if(lcd_lower_flag==RIGHT)//move to RIGHT
-        {
-            if(i==31)   lcd_str[16]=' '; 
-            else        lcd_str[31-i]=lcd_str[30-i];
-        }
-        else if(lcd_lower_flag==LEFT)//move to LEFT
-        {
-            if(i+16==31)   lcd_str[31]=' '; 
-            else        lcd_str[16+i]=lcd_str[16+i+1];
-        }
-    }
-*/
-
-    if(arg<user_d.number-1)
+ //   if(arg<user_d.number)
         add_timer(driver_timer);
+}
     else //finish timer
     {
         del_timer(driver_timer);
@@ -325,8 +207,8 @@ void timer_handler(unsigned long arg)
             outw((unsigned short int)0,(unsigned int)iom_fpga_dot_addr+2*i);
         for(i=0;i<32;i++)
             outw((unsigned short int)0,(unsigned int)iom_fpga_text_lcd_addr+i);
-
     }
+    
 }
 
 // write to fnd device
@@ -373,6 +255,94 @@ void device_text_lcd_write(unsigned char lcd_str[33])
         i++;
     }
 }
+
+//set each device variable
+void set_initVals()
+{
+    int i;
+
+    for(i=0;i<4;i++)
+    {
+        fnd_write[i]=0;
+    }
+    fnd_write[user_d.fnd_loc-1]=user_d.fnd_val;
+    led_val=1<<(8-user_d.fnd_val);
+    dot_val=user_d.fnd_val;
+
+}
+
+//reset each device variable according to timer
+void reset_vals()
+{
+    int i;
+    static int iter=0;
+    static char lcd_upper_flag=RIGHT;
+    static char lcd_lower_flag=RIGHT;
+    
+    iter++;
+    for(i=0;i<4;i++)
+    {
+        if(fnd_write[i]!=0)
+        {
+           if(iter==8)
+           {
+                fnd_write[(i+1)%4]=fnd_write[i]%8+1;
+                fnd_write[i]=0;
+                i++;
+                iter=0;
+                break;
+           }
+           else
+
+           {
+               fnd_write[i]=fnd_write[i]%8+1;
+               break;
+           }
+        }
+    }
+    led_val=1<<(8-fnd_write[i]);
+    dot_val=fnd_write[i];
+
+
+    //lcd string
+    if(lcd_str[0]==' '&& lcd_str[15]!=' ')
+        lcd_upper_flag=LEFT;
+    else if(lcd_str[0]!=' '&& lcd_str[15]==' ')
+        lcd_upper_flag=RIGHT;
+    for(i=0;i<16;i++)
+    {
+        if(lcd_upper_flag==RIGHT)//move to RIGHT
+        {
+            if(i==15)   lcd_str[0]=' '; 
+            else        lcd_str[15-i]=lcd_str[14-i];
+        }
+        else if(lcd_upper_flag==LEFT)//move to LEFT
+        {
+            if(i==15)   lcd_str[15]=' '; 
+            else        lcd_str[i]=lcd_str[i+1];
+        }
+    }
+    if(lcd_str[16]==' '&& lcd_str[31]!=' ')
+        lcd_lower_flag=LEFT;
+    else if(lcd_str[16]!=' '&& lcd_str[31]==' ')
+        lcd_lower_flag=RIGHT;
+
+    for(i=0;i<16;i++)
+    {
+        if(lcd_lower_flag==RIGHT)//move to RIGHT
+        {
+            if(i==31)   lcd_str[16]=' '; 
+            else        lcd_str[31-i]=lcd_str[30-i];
+        }
+        else if(lcd_lower_flag==LEFT)//move to LEFT
+        {
+            if(i+16==31)   lcd_str[31]=' '; 
+            else        lcd_str[16+i]=lcd_str[16+i+1];
+        }
+    }
+
+}
+
 
 //init driver
 int __init init_driver(void)

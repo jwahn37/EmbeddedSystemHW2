@@ -22,7 +22,7 @@ asmlinkage int sys_combine_input(struct user_input *user) {
 	//get user's input 
 	copy_from_user(&user_in, user, sizeof(user_in));
 	
-	printk("sys_combinedInput %c %d %d\n", user_in.timer_span, user_in.number, user_in.start_option);
+	//printk("sys_combinedInput %c %d %d\n", user_in.timer_span, user_in.number, user_in.start_option);
 
 	//change user's input format to 5byte integer type
 	//1byte : fnd location, 1byte : fnd value, 1byte: timer span, 1byte : number of print
@@ -39,7 +39,7 @@ asmlinkage int sys_combine_input(struct user_input *user) {
 	return_info += timer_span >> 8;
 	return_info += number;
 
-	printk("return info %d\n",return_info);
+	//printk("return info %d\n",return_info);
 
 	return return_info;
 }

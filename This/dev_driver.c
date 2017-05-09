@@ -146,18 +146,18 @@ long device_ioctl(struct file *mfile, unsigned int ioctl_num, unsigned long ioct
             user_d.fnd_val=(sys_data>>16) &0xFF;
             user_d.timer_span=(sys_data>>8)&0xFF;
             user_d.number=(sys_data)&0xFF;
-            printk("user_data : %d %d %d %d\n",user_d.fnd_loc, user_d.fnd_val, user_d.timer_span, user_d.number);
+            //printk("user_data : %d %d %d %d\n",user_d.fnd_loc, user_d.fnd_val, user_d.timer_span, user_d.number);
 
             //start timer
             timer_init();
-            printk("fin-ioctl\n");
+            //printk("fin-ioctl\n");
     }
     return 1;
 }
 
 //start timer
 int timer_init(void){
-    printk("start timer module\n");
+    //printk("start timer module\n");
     driver_timer= kmalloc(sizeof(struct timer_list), GFP_KERNEL );
     if(driver_timer==NULL)
             return -1;
@@ -175,23 +175,23 @@ void timer_handler(unsigned long arg)
 {
     int i;
   
-    printk("timer tick : %ld  %d\n", arg,led_val);
-    driver_timer -> data++;
-    driver_timer->expires = get_jiffies_64() + (HZ*user_d.timer_span/10);
+    if(arg<user_d.number)
+    {    
+      //  printk("timer tick : %ld  %d\n", arg,led_val);
+        driver_timer -> data++;
+        driver_timer->expires = get_jiffies_64() + (HZ*user_d.timer_span/10);
     
-  //write each device
-    device_fnd_write(fnd_write);
-    device_led_write(led_val);
-    device_dot_write(dot_val);
+        //write each device
+        device_fnd_write(fnd_write);
+        device_led_write(led_val);
+        device_dot_write(dot_val);
 
-    //reset each variable in device
-    reset_vals();
-
-    device_text_lcd_write(lcd_str);
+        //reset each variable in device
+        reset_vals();
+        device_text_lcd_write(lcd_str);
  
-
-    if(arg<user_d.number-1)
         add_timer(driver_timer);
+    }
     else //finish timer
     {
         del_timer(driver_timer);
@@ -202,15 +202,15 @@ void timer_handler(unsigned long arg)
             outw((unsigned short int)0,(unsigned int)iom_fpga_dot_addr+2*i);
         for(i=0;i<32;i++)
             outw((unsigned short int)0,(unsigned int)iom_fpga_text_lcd_addr+i);
-
     }
+    
 }
 
 // write to fnd device
 void device_fnd_write(unsigned char value[4]) 
 {
 	unsigned short int value_short = 0;
-    printk("%d %d %d %d\n",value[0],value[1],value[2],value[3]);
+    //printk("%d %d %d %d\n",value[0],value[1],value[2],value[3]);
     value_short = value[0] << 12 | value[1] << 8 |value[2] << 4 |value[3];
     outw(value_short,(unsigned int)iom_fpga_fnd_addr);	    
 
@@ -356,7 +356,7 @@ int __init init_driver(void)
     iom_fpga_text_lcd_addr = ioremap(IOM_FPGA_TEXT_LCD_ADDRESS, 0x32);
 
 
-	printk("init module, %s major number : %d\n", DEV_NAME, MAJOR_NUM);
+	//printk("init module, %s major number : %d\n", DEV_NAME, MAJOR_NUM);
 
 	return 0;
 }
