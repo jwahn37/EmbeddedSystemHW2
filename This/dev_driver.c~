@@ -1,0 +1,413 @@
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/init.h>
+#include <linux/slab.h>
+#include <linux/platform_device.h>
+#include <linux/delay.h>
+#include <linux/ioctl.h>
+#include <asm/io.h>
+#include <asm/uaccess.h>
+#include <linux/kernel.h>
+#include <linux/ioport.h>
+#include <linux/module.h>
+#include <linux/fs.h>
+#include <linux/init.h>
+#include <linux/version.h>
+#include <asm/param.h>
+#include <linux/timer.h>
+#include <linux/errno.h>
+#include <linux/slab.h>
+
+#define MAJOR_NUM 242		// ioboard fpga device major number
+#define DEV_NAME "dev_driver"		// ioboard fpga device name
+
+#define IOM_FND_ADDRESS 0x08000004 // pysical address
+#define IOM_LED_ADDRESS 0x08000016 // pysical address
+#define IOM_FPGA_DOT_ADDRESS 0x08000210 // pysical address
+#define IOM_FPGA_TEXT_LCD_ADDRESS 0x08000090 // pysical address - 32 Byte (16 * 2)
+
+#define LEFT 1
+#define RIGHT 0
+
+#define IOCTL_SET_MSG _IOR(MAJOR_NUM, 0, char*)
+
+//Global variable
+static int fpga_fnd_port_usage = 0;
+static int fpga_text_lcd_port_usage=0;
+static int ledport_usage=0;
+static int fpga_dot_port_usage=0;
+
+static unsigned char *iom_fpga_fnd_addr;
+static unsigned char *iom_fpga_led_addr;
+static unsigned char *iom_fpga_text_lcd_addr;
+static unsigned char *iom_fpga_dot_addr;
+
+// define functions...
+
+int iom_fpga_fnd_open(struct inode *minode, struct file *mfile);
+int iom_fpga_fnd_release(struct inode *minode, struct file *mfile);
+long device_ioctl(/*struct inode *minode,*/ struct file *mfile, unsigned int ioctl_num, unsigned long ioctl_param);
+void device_fnd_write(unsigned char value[4]); 
+int timer_init(void);
+void timer_handler(unsigned long arg);
+int device_open(struct inode *minode, struct file *mfile);
+int device_release(struct inode *minocde, struct file *mfile);
+
+void set_initVals(void);
+void reset_vals(void);
+
+
+void device_led_write(unsigned short _s_value);
+void device_text_lcd_write(unsigned char lcd_str[33]);
+void device_dot_write(int dot_val);
+
+// define file_operations structure 
+struct file_operations iom_fpga_fnd_fops =
+{
+	.owner		=	THIS_MODULE,
+	.open		=	device_open,
+	.release	=	device_release,
+    .unlocked_ioctl      =   device_ioctl,
+};
+
+
+struct user_data {
+    char timer_span;
+    char number;
+    char fnd_loc;
+    char fnd_val;
+};
+
+//global variable for each device
+struct user_data user_d;
+struct timer_list *driver_timer;
+unsigned long data=0;
+unsigned char fnd_write[4]={1,2,3,4};
+unsigned short led_val=1;
+int dot_val = 0;
+unsigned char lcd_str[33]="20121604        JinWooAhn       ";
+
+const unsigned char fpga_number[10][10] = {
+    {0x3e,0x7f,0x63,0x73,0x73,0x6f,0x67,0x63,0x7f,0x3e}, // 0
+    {0x0c,0x1c,0x1c,0x0c,0x0c,0x0c,0x0c,0x0c,0x0c,0x1e}, // 1
+    {0x7e,0x7f,0x03,0x03,0x3f,0x7e,0x60,0x60,0x7f,0x7f}, // 2
+    {0xfe,0x7f,0x03,0x03,0x7f,0x7f,0x03,0x03,0x7f,0x7e}, // 3
+    {0x66,0x66,0x66,0x66,0x66,0x66,0x7f,0x7f,0x06,0x06}, // 4
+    {0x7f,0x7f,0x60,0x60,0x7e,0x7f,0x03,0x03,0x7f,0x7e}, // 5
+    {0x60,0x60,0x60,0x60,0x7e,0x7f,0x63,0x63,0x7f,0x3e}, // 6
+    {0x7f,0x7f,0x63,0x63,0x03,0x03,0x03,0x03,0x03,0x03}, // 7
+    {0x3e,0x7f,0x63,0x63,0x7f,0x7f,0x63,0x63,0x7f,0x3e}, // 8
+    {0x3e,0x7f,0x63,0x63,0x7f,0x3f,0x03,0x03,0x03,0x03} // 9
+};
+
+//set each device variable
+void set_initVals()
+{
+    int i;
+
+    for(i=0;i<4;i++)
+    {
+        fnd_write[i]=0;
+    }
+    fnd_write[user_d.fnd_loc-1]=user_d.fnd_val;
+    led_val=1<<(8-user_d.fnd_val);
+    dot_val=user_d.fnd_val;
+
+}
+
+//reset each device variable according to timer
+void reset_vals()
+{
+    int i;
+    static int iter=0;
+    static char lcd_upper_flag=RIGHT;
+    static char lcd_lower_flag=RIGHT;
+    
+    iter++;
+    for(i=0;i<4;i++)
+    {
+        if(fnd_write[i]!=0)
+        {
+           if(iter==8)
+           {
+                fnd_write[(i+1)%4]=fnd_write[i]%8+1;
+                fnd_write[i]=0;
+                i++;
+                iter=0;
+                break;
+           }
+           else
+           {
+               fnd_write[i]=fnd_write[i]%8+1;
+               break;
+           }
+        }
+    }
+    led_val=1<<(8-fnd_write[i]);
+    dot_val=fnd_write[i];
+
+
+    //lcd string
+    if(lcd_str[0]==' '&& lcd_str[15]!=' ')
+        lcd_upper_flag=LEFT;
+    else if(lcd_str[0]!=' '&& lcd_str[15]==' ')
+        lcd_upper_flag=RIGHT;
+    for(i=0;i<16;i++)
+    {
+        if(lcd_upper_flag==RIGHT)//move to RIGHT
+        {
+            if(i==15)   lcd_str[0]=' '; 
+            else        lcd_str[15-i]=lcd_str[14-i];
+        }
+        else if(lcd_upper_flag==LEFT)//move to LEFT
+        {
+            if(i==15)   lcd_str[15]=' '; 
+            else        lcd_str[i]=lcd_str[i+1];
+        }
+    }
+    if(lcd_str[16]==' '&& lcd_str[31]!=' ')
+        lcd_lower_flag=LEFT;
+    else if(lcd_str[16]!=' '&& lcd_str[31]==' ')
+        lcd_lower_flag=RIGHT;
+
+    for(i=0;i<16;i++)
+    {
+        if(lcd_lower_flag==RIGHT)//move to RIGHT
+        {
+            if(i==31)   lcd_str[16]=' '; 
+            else        lcd_str[31-i]=lcd_str[30-i];
+        }
+        else if(lcd_lower_flag==LEFT)//move to LEFT
+        {
+            if(i+16==31)   lcd_str[31]=' '; 
+            else        lcd_str[16+i]=lcd_str[16+i+1];
+        }
+    }
+
+}
+
+//device open
+int device_open(struct inode *minode, struct file *mfile)
+{
+
+    
+	if(fpga_fnd_port_usage != 0) return -EBUSY;
+	fpga_fnd_port_usage = 1;
+    
+	if(fpga_text_lcd_port_usage != 0) return -EBUSY;
+	fpga_text_lcd_port_usage = 1;
+    
+	if(ledport_usage != 0) return -EBUSY;
+	ledport_usage = 1;
+    
+	if(fpga_dot_port_usage != 0) return -EBUSY;
+	fpga_dot_port_usage = 1;
+    return 0;
+}
+
+//device release
+int device_release(struct inode *minode, struct file *mfile)
+{
+	fpga_fnd_port_usage = 0;
+	fpga_text_lcd_port_usage = 0;
+	ledport_usage = 0;
+	fpga_dot_port_usage = 0;
+   
+    return 0;
+}
+
+//read user's input and execute timer
+long device_ioctl(struct file *mfile, unsigned int ioctl_num, unsigned long ioctl_param)
+{
+    int sys_data; //data from system call
+ 
+ switch(ioctl_num)
+    {
+        case IOCTL_SET_MSG: //read user's input and set message
+            
+            //read user's data and set message
+            sys_data=ioctl_param;
+            user_d.fnd_loc=(sys_data>>24) &0xFF;
+            user_d.fnd_val=(sys_data>>16) &0xFF;
+            user_d.timer_span=(sys_data>>8)&0xFF;
+            user_d.number=(sys_data)&0xFF;
+            printk("user_data : %d %d %d %d\n",user_d.fnd_loc, user_d.fnd_val, user_d.timer_span, user_d.number);
+
+            //start timer
+            timer_init();
+            printk("fin-ioctl\n");
+    }
+    return 1;
+}
+
+//start timer
+int timer_init(void){
+    printk("start timer module\n");
+    driver_timer= kmalloc(sizeof(struct timer_list), GFP_KERNEL );
+    if(driver_timer==NULL)
+            return -1;
+    init_timer(driver_timer);
+    driver_timer->expires = get_jiffies_64() + (HZ*user_d.timer_span/10);
+    driver_timer->data = data;
+    driver_timer->function = timer_handler;
+    set_initVals();
+    add_timer(driver_timer);
+    return 0;
+}
+
+//timer handler
+void timer_handler(unsigned long arg)
+{
+    int i;
+  //  static char lcd_upper_flag=RIGHT;
+  //  static char lcd_lower_flag=RIGHT;
+    printk("timer tick : %ld  %d\n", arg,led_val);
+    driver_timer -> data++;
+    driver_timer->expires = get_jiffies_64() + (HZ*user_d.timer_span/10);
+    
+  //write each device
+    device_fnd_write(fnd_write);
+    device_led_write(led_val);
+    device_dot_write(dot_val);
+
+    //reset each variable in device
+    reset_vals();
+
+    device_text_lcd_write(lcd_str);
+ /* 
+    //lcd string
+    if(lcd_str[0]==' '&& lcd_str[15]!=' ')
+        lcd_upper_flag=LEFT;
+    else if(lcd_str[0]!=' '&& lcd_str[15]==' ')
+        lcd_upper_flag=RIGHT;
+    for(i=0;i<16;i++)
+    {
+        if(lcd_upper_flag==RIGHT)//move to RIGHT
+        {
+            if(i==15)   lcd_str[0]=' '; 
+            else        lcd_str[15-i]=lcd_str[14-i];
+        }
+        else if(lcd_upper_flag==LEFT)//move to LEFT
+        {
+            if(i==15)   lcd_str[15]=' '; 
+            else        lcd_str[i]=lcd_str[i+1];
+        }
+    }
+    if(lcd_str[16]==' '&& lcd_str[31]!=' ')
+        lcd_lower_flag=LEFT;
+    else if(lcd_str[16]!=' '&& lcd_str[31]==' ')
+        lcd_lower_flag=RIGHT;
+
+    for(i=0;i<16;i++)
+    {
+        if(lcd_lower_flag==RIGHT)//move to RIGHT
+        {
+            if(i==31)   lcd_str[16]=' '; 
+            else        lcd_str[31-i]=lcd_str[30-i];
+        }
+        else if(lcd_lower_flag==LEFT)//move to LEFT
+        {
+            if(i+16==31)   lcd_str[31]=' '; 
+            else        lcd_str[16+i]=lcd_str[16+i+1];
+        }
+    }
+*/
+
+    if(arg<user_d.number-1)
+        add_timer(driver_timer);
+    else //finish timer
+    {
+        del_timer(driver_timer);
+        //make each variable default
+        outw(0,(unsigned int)iom_fpga_fnd_addr);
+        outw(0,(unsigned int)iom_fpga_led_addr);
+        for(i=0;i<10;i++)
+            outw((unsigned short int)0,(unsigned int)iom_fpga_dot_addr+2*i);
+        for(i=0;i<32;i++)
+            outw((unsigned short int)0,(unsigned int)iom_fpga_text_lcd_addr+i);
+
+    }
+}
+
+// write to fnd device
+void device_fnd_write(unsigned char value[4]) 
+{
+	unsigned short int value_short = 0;
+    printk("%d %d %d %d\n",value[0],value[1],value[2],value[3]);
+    value_short = value[0] << 12 | value[1] << 8 |value[2] << 4 |value[3];
+    outw(value_short,(unsigned int)iom_fpga_fnd_addr);	    
+
+	
+}
+
+//writte to led device
+void device_led_write(unsigned short _s_value)
+{
+    outw(_s_value, (unsigned int) iom_fpga_led_addr);
+
+}
+
+//write to dot device
+void device_dot_write(int dot_val)
+{
+    int i;
+    unsigned short int _s_value;
+
+    for(i=0;i<10;i++)
+    {
+        _s_value = fpga_number[dot_val][i] & 0x7F;
+        outw(_s_value, (unsigned int)iom_fpga_dot_addr+i*2);
+    }
+
+}
+
+//write to lcd device
+void device_text_lcd_write(unsigned char lcd_str[33])
+{
+    int i;
+    unsigned short int _s_value =0;
+    for(i=0;i<33;i++)
+    {
+         _s_value = (lcd_str[i] & 0xFF) << 8 | (lcd_str[i + 1] & 0xFF);
+        outw(_s_value,(unsigned int)iom_fpga_text_lcd_addr+i);
+        i++;
+    }
+}
+
+//init driver
+int __init init_driver(void)
+{
+	int result;
+
+	result = register_chrdev(MAJOR_NUM, DEV_NAME, &iom_fpga_fnd_fops);
+	if(result < 0) {
+		printk(KERN_WARNING"Can't get any major\n");
+		return result;
+	}
+
+	iom_fpga_fnd_addr = ioremap(IOM_FND_ADDRESS, 0x4);
+    iom_fpga_led_addr = ioremap(IOM_LED_ADDRESS, 0x1);
+    iom_fpga_dot_addr = ioremap(IOM_FPGA_DOT_ADDRESS, 0x10);
+    iom_fpga_text_lcd_addr = ioremap(IOM_FPGA_TEXT_LCD_ADDRESS, 0x32);
+
+
+	printk("init module, %s major number : %d\n", DEV_NAME, MAJOR_NUM);
+
+	return 0;
+}
+//exit driver
+void __exit exit_driver(void)
+{
+	iounmap(iom_fpga_fnd_addr);
+    iounmap(iom_fpga_led_addr);
+    iounmap(iom_fpga_dot_addr);
+    iounmap(iom_fpga_text_lcd_addr);
+	unregister_chrdev(MAJOR_NUM, DEV_NAME);
+}
+
+
+module_init(init_driver);
+module_exit(exit_driver);
+
+MODULE_LICENSE("GPL");
+//MODULE_AUTHOR("Huins");

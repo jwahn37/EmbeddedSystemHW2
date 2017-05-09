@@ -1,9 +1,8 @@
-cmd_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o := arm-none-linux-gnueabi-gcc -Wp,-MD,/home/embe-19/Downloads/EmbeHW2/fpga_fnd/.fpga_fnd_driver.mod.o.d  -nostdinc -isystem /opt/toolchains/arm-2014.05/bin/../lib/gcc/arm-none-linux-gnueabi/4.8.3/include -I/work/achroimx_kernel/arch/arm/include -Iarch/arm/include/generated -Iinclude  -include include/generated/autoconf.h -D__KERNEL__ -mlittle-endian -Iarch/arm/mach-mx6/include -Iarch/arm/plat-mxc/include -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -marm -fno-dwarf2-cfi-asm -fstack-protector -mabi=aapcs-linux -mno-thumb-interwork -funwind-tables -D__LINUX_ARM_ARCH__=7 -march=armv7-a -msoft-float -Uarm -Wframe-larger-than=1024 -Wno-unused-but-set-variable -fomit-frame-pointer -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO   -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(fpga_fnd_driver.mod)"  -D"KBUILD_MODNAME=KBUILD_STR(fpga_fnd_driver)" -DMODULE  -c -o /home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o /home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.c
+cmd_/home/embe-19/Downloads/EmbeHW2/This/dev_driver.o := arm-none-linux-gnueabi-gcc -Wp,-MD,/home/embe-19/Downloads/EmbeHW2/This/.dev_driver.o.d  -nostdinc -isystem /opt/toolchains/arm-2014.05/bin/../lib/gcc/arm-none-linux-gnueabi/4.8.3/include -I/work/achroimx_kernel/arch/arm/include -Iarch/arm/include/generated -Iinclude  -include include/generated/autoconf.h -D__KERNEL__ -mlittle-endian -Iarch/arm/mach-mx6/include -Iarch/arm/plat-mxc/include -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -marm -fno-dwarf2-cfi-asm -fstack-protector -mabi=aapcs-linux -mno-thumb-interwork -funwind-tables -D__LINUX_ARM_ARCH__=7 -march=armv7-a -msoft-float -Uarm -Wframe-larger-than=1024 -Wno-unused-but-set-variable -fomit-frame-pointer -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO   -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(dev_driver)"  -D"KBUILD_MODNAME=KBUILD_STR(dev_driver)" -c -o /home/embe-19/Downloads/EmbeHW2/This/.tmp_dev_driver.o /home/embe-19/Downloads/EmbeHW2/This/dev_driver.c
 
-source_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o := /home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.c
+source_/home/embe-19/Downloads/EmbeHW2/This/dev_driver.o := /home/embe-19/Downloads/EmbeHW2/This/dev_driver.c
 
-deps_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o := \
-    $(wildcard include/config/module/unload.h) \
+deps_/home/embe-19/Downloads/EmbeHW2/This/dev_driver.o := \
   include/linux/module.h \
     $(wildcard include/config/symbol/prefix.h) \
     $(wildcard include/config/sysfs.h) \
@@ -17,6 +16,7 @@ deps_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o := \
     $(wildcard include/config/tracing.h) \
     $(wildcard include/config/event/tracing.h) \
     $(wildcard include/config/ftrace/mcount/record.h) \
+    $(wildcard include/config/module/unload.h) \
     $(wildcard include/config/constructors.h) \
     $(wildcard include/config/debug/set/module/ronx.h) \
   include/linux/list.h \
@@ -362,9 +362,93 @@ deps_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o := \
     $(wildcard include/config/arm/unwind.h) \
   include/trace/events/module.h \
   include/trace/define_trace.h \
-  include/linux/vermagic.h \
-  include/generated/utsrelease.h \
+  include/linux/fs.h \
+    $(wildcard include/config/security.h) \
+    $(wildcard include/config/quota.h) \
+    $(wildcard include/config/fsnotify.h) \
+    $(wildcard include/config/ima.h) \
+    $(wildcard include/config/fs/posix/acl.h) \
+    $(wildcard include/config/epoll.h) \
+    $(wildcard include/config/debug/writecount.h) \
+    $(wildcard include/config/file/locking.h) \
+    $(wildcard include/config/auditsyscall.h) \
+    $(wildcard include/config/block.h) \
+    $(wildcard include/config/fs/xip.h) \
+    $(wildcard include/config/migration.h) \
+  include/linux/limits.h \
+  include/linux/ioctl.h \
+  /work/achroimx_kernel/arch/arm/include/asm/ioctl.h \
+  include/asm-generic/ioctl.h \
+  include/linux/blk_types.h \
+    $(wildcard include/config/blk/dev/integrity.h) \
+  include/linux/kdev_t.h \
+  include/linux/dcache.h \
+  include/linux/rculist.h \
+  include/linux/rculist_bl.h \
+  include/linux/list_bl.h \
+  include/linux/bit_spinlock.h \
+  include/linux/path.h \
+  include/linux/radix-tree.h \
+  include/linux/prio_tree.h \
+  include/linux/pid.h \
+  include/linux/capability.h \
+  include/linux/semaphore.h \
+  include/linux/fiemap.h \
+  include/linux/quota.h \
+    $(wildcard include/config/quota/netlink/interface.h) \
+  include/linux/percpu_counter.h \
+  include/linux/dqblk_xfs.h \
+  include/linux/dqblk_v1.h \
+  include/linux/dqblk_v2.h \
+  include/linux/dqblk_qtree.h \
+  include/linux/nfs_fs_i.h \
+  include/linux/nfs.h \
+  include/linux/sunrpc/msg_prot.h \
+  include/linux/inet.h \
+  include/linux/fcntl.h \
+  /work/achroimx_kernel/arch/arm/include/asm/fcntl.h \
+  include/asm-generic/fcntl.h \
+  include/linux/err.h \
+  include/linux/slab.h \
+    $(wildcard include/config/slab/debug.h) \
+    $(wildcard include/config/failslab.h) \
+    $(wildcard include/config/slub.h) \
+    $(wildcard include/config/slob.h) \
+    $(wildcard include/config/debug/slab.h) \
+    $(wildcard include/config/slab.h) \
+  include/linux/slub_def.h \
+    $(wildcard include/config/slub/stats.h) \
+    $(wildcard include/config/slub/debug.h) \
+  include/linux/kmemleak.h \
+    $(wildcard include/config/debug/kmemleak.h) \
+  include/linux/platform_device.h \
+    $(wildcard include/config/pm/sleep.h) \
+    $(wildcard include/config/suspend.h) \
+    $(wildcard include/config/hibernate/callbacks.h) \
+  include/linux/device.h \
+    $(wildcard include/config/debug/devres.h) \
+    $(wildcard include/config/devtmpfs.h) \
+    $(wildcard include/config/sysfs/deprecated.h) \
+  include/linux/ioport.h \
+  include/linux/klist.h \
+  include/linux/pm.h \
+    $(wildcard include/config/pm.h) \
+    $(wildcard include/config/pm/runtime.h) \
+  /work/achroimx_kernel/arch/arm/include/asm/device.h \
+    $(wildcard include/config/dmabounce.h) \
+  include/linux/pm_wakeup.h \
+  include/linux/mod_devicetable.h \
+  include/linux/delay.h \
+  /work/achroimx_kernel/arch/arm/include/asm/delay.h \
+  /work/achroimx_kernel/arch/arm/include/asm/io.h \
+  arch/arm/plat-mxc/include/mach/io.h \
+    $(wildcard include/config/soc/imx31.h) \
+    $(wildcard include/config/soc/imx35.h) \
+  /work/achroimx_kernel/arch/arm/include/asm/uaccess.h \
+  /work/achroimx_kernel/arch/arm/include/asm/unified.h \
+    $(wildcard include/config/arm/asm/unified.h) \
+  include/linux/version.h \
 
-/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o: $(deps_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o)
+/home/embe-19/Downloads/EmbeHW2/This/dev_driver.o: $(deps_/home/embe-19/Downloads/EmbeHW2/This/dev_driver.o)
 
-$(deps_/home/embe-19/Downloads/EmbeHW2/fpga_fnd/fpga_fnd_driver.mod.o):
+$(deps_/home/embe-19/Downloads/EmbeHW2/This/dev_driver.o):
